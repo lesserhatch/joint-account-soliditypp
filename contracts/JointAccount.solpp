@@ -1,0 +1,100 @@
+// SPDX-License-Identifier: GPL-3.0
+pragma soliditypp ^0.8.0;
+
+// Features:
+//  * Anyone can create a joint account
+//  * Joint account makers can specify who can vote and the approval threshold to move funds
+//  * Joint accounts can hold multiple token types
+//  * Joint account members can propose a motion to move a specific token type and amount to a specific address
+//  * Joint account members can vote to pass the motion or not (not voting counts as rejecting the motion)
+//  * If the approval threshold to pass the motion is met, the transfer is executed and then the motion and votes are reset
+//  * Motions can be replaced or removed at any time by any joint account member; when this happens, votes are reset.
+
+// UI:
+//  * Takes into account "Features" and "Contract Requirements"
+//  * Uses Figma or a similar design tool that makes copying color/pixel values easy
+//  * Has a logo
+//  * Allows users to log in with ViteConnect (i.e. scanning QR code with Vite mobile app)
+//  * Is easy for anyone to understand and use - regardless of their experience with crypto.
+//  * Be responsive to different screen sizes
+//  * Has a light and dark mode with a component to choose between dark/light/system themes
+//  * Has a homepage that describes what the dapp is, how to use it, and why it exists.
+//  * Has a page that shows all joint accounts your Vite address is a member of
+//  * Has a component for proposing/replacing/removing motions to move funds
+//  * Has a component for voting on motions
+//  * Has a component that shows all a joint account's history (sending/receiving funds, motion pass/reject/replace, etc.)
+//  * Additional features are welcome!
+
+contract JointAccount {
+
+    struct Proposal {
+        address owner;
+        address destination;
+        vitetoken token;
+        uint256 amount;
+        uint256 approvalCount;
+        mapping (uint256 => address) approvals;
+    }
+
+    struct Account {
+        uint256 approvalThreshold;
+    }
+
+    Account[] public accounts;
+    mapping (uint256 => address[]) public accountMembers;
+    mapping (uint256 => Proposal) public accountProposals;
+
+    constructor() payable {}
+
+    event Received(address sender, vitetoken token, uint256 amount);
+
+    // Receive Token function
+    receive() external payable {
+        address sender = msg.sender;
+        vitetoken token = msg.token;
+        uint256 amount = msg.value;
+
+        emit Received(sender, token, amount);
+    }
+
+    function create(uint256 _approvalThreshold, address[] calldata _members) external {
+        accounts.push(Account(_approvalThreshold));
+        uint256 id = accounts.length - 1;
+        accountMembers[id] = _members;
+    }
+
+    function getMembers(uint256 _id) view external returns (address[] memory) {
+        return accountMembers[_id];
+    }
+
+    function newProposal(uint256 _id, address _destination, vitetoken _token, uint256 _amount) external {
+        require(_isMember(_id), "must be an account member");
+
+        Proposal storage p = accountProposals[_id];
+        p.owner = msg.sender;
+        p.destination = _destination;
+        p.token = _token;
+        p.amount = _amount;
+        p.approvalCount = 0;
+    }
+
+    function voteOnProposal(uint256 _id) external {
+        require(_isMember(_id), "must be an account member");
+
+        Proposal storage p = accountProposals[_id];
+        for (uint256 i = 0; i < p.approvalCount; i++) {
+            require(p.approvals[i] != msg.sender, "cannot vote more than once");
+        }
+
+        p.approvals[p.approvalCount++] = msg.sender;
+    }
+
+    function _isMember(uint256 _id) view private returns(bool) {
+        for (uint256 i = 0; i < accountMembers[_id].length; i++) {
+            if (msg.sender == accountMembers[_id][i]) {
+                return true;
+            }
+        }
+        return false;
+    }
+}
