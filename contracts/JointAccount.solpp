@@ -25,6 +25,16 @@ pragma soliditypp ^0.8.0;
 //  * Has a component that shows all a joint account's history (sending/receiving funds, motion pass/reject/replace, etc.)
 //  * Additional features are welcome!
 
+contract JointAccountFactory {
+    address[] public accounts;
+
+    function newJointAccount(address[] calldata _members, uint256 _approvalThreshold) public returns (address) {
+        JointAccount a = new JointAccount(_members, _approvalThreshold);
+        accounts.push(address(a));
+        return address(a);
+    }
+}
+
 contract JointAccount {
 
     struct Proposal {
@@ -36,65 +46,52 @@ contract JointAccount {
         mapping (uint256 => address) approvals;
     }
 
-    struct Account {
-        uint256 approvalThreshold;
+    address[] members;
+    uint256 approvalThreshold;
+
+    constructor(address[] memory _members, uint256 _approvalThreshold) payable {
+        members = _members;
+        approvalThreshold = _approvalThreshold;
     }
 
-    Account[] public accounts;
-    mapping (uint256 => address[]) public accountMembers;
-    mapping (uint256 => Proposal) public accountProposals;
+    // function create(uint256 _approvalThreshold, address[] calldata _members) external {
+    //     accounts.push(Account(_approvalThreshold));
+    //     uint256 id = accounts.length - 1;
+    //     accountMembers[id] = _members;
+    // }
 
-    constructor() payable {}
+    // function getMembers(uint256 _id) view external returns (address[] memory) {
+    //     return accountMembers[_id];
+    // }
 
-    event Received(address sender, vitetoken token, uint256 amount);
+    // function newProposal(uint256 _id, address _destination, vitetoken _token, uint256 _amount) external {
+    //     require(_isMember(_id), "must be an account member");
 
-    // Receive Token function
-    receive() external payable {
-        address sender = msg.sender;
-        vitetoken token = msg.token;
-        uint256 amount = msg.value;
+    //     Proposal storage p = accountProposals[_id];
+    //     p.owner = msg.sender;
+    //     p.destination = _destination;
+    //     p.token = _token;
+    //     p.amount = _amount;
+    //     p.approvalCount = 0;
+    // }
 
-        emit Received(sender, token, amount);
-    }
+    // function voteOnProposal(uint256 _id) external {
+    //     require(_isMember(_id), "must be an account member");
 
-    function create(uint256 _approvalThreshold, address[] calldata _members) external {
-        accounts.push(Account(_approvalThreshold));
-        uint256 id = accounts.length - 1;
-        accountMembers[id] = _members;
-    }
+    //     Proposal storage p = accountProposals[_id];
+    //     for (uint256 i = 0; i < p.approvalCount; i++) {
+    //         require(p.approvals[i] != msg.sender, "cannot vote more than once");
+    //     }
 
-    function getMembers(uint256 _id) view external returns (address[] memory) {
-        return accountMembers[_id];
-    }
+    //     p.approvals[p.approvalCount++] = msg.sender;
+    // }
 
-    function newProposal(uint256 _id, address _destination, vitetoken _token, uint256 _amount) external {
-        require(_isMember(_id), "must be an account member");
-
-        Proposal storage p = accountProposals[_id];
-        p.owner = msg.sender;
-        p.destination = _destination;
-        p.token = _token;
-        p.amount = _amount;
-        p.approvalCount = 0;
-    }
-
-    function voteOnProposal(uint256 _id) external {
-        require(_isMember(_id), "must be an account member");
-
-        Proposal storage p = accountProposals[_id];
-        for (uint256 i = 0; i < p.approvalCount; i++) {
-            require(p.approvals[i] != msg.sender, "cannot vote more than once");
-        }
-
-        p.approvals[p.approvalCount++] = msg.sender;
-    }
-
-    function _isMember(uint256 _id) view private returns(bool) {
-        for (uint256 i = 0; i < accountMembers[_id].length; i++) {
-            if (msg.sender == accountMembers[_id][i]) {
-                return true;
-            }
-        }
-        return false;
-    }
+    // function _isMember(uint256 _id) view private returns(bool) {
+    //     for (uint256 i = 0; i < accountMembers[_id].length; i++) {
+    //         if (msg.sender == accountMembers[_id][i]) {
+    //             return true;
+    //         }
+    //     }
+    //     return false;
+    // }
 }
