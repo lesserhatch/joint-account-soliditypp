@@ -48,12 +48,8 @@ contract JointAccount {
         vitetoken token = msg.token;
         uint256 amount = msg.value;
 
-        balances[token] = balances[token] + amount;
-
         emit Received(sender, token, amount);
     }
-
-    mapping(vitetoken => uint256) balances;
 
     struct Proposal {
         uint256 id;
@@ -72,11 +68,6 @@ contract JointAccount {
     constructor(address _manager, address[] memory _members, uint256 _approvalThreshold) payable {
         require(_approvalThreshold <= _members.length, "approval threshold cannot be larger than number of members");
 
-        vitetoken token = msg.token;
-        uint256 amount = msg.value;
-
-        balances[token] = balances[token] + amount;
-
         members = _members;
         approvalThreshold = _approvalThreshold;
 
@@ -86,7 +77,7 @@ contract JointAccount {
 
     function newProposal(address payable _destination, vitetoken _token, uint256 _amount) external {
         require(_isMember(), "must be an account member");
-        require(balances[_token] >= _amount);
+        require(balance(_token) >= _amount, "insufficient token balance");
 
         proposal.id = proposal.id + 1;
         proposal.owner = msg.sender;
@@ -110,7 +101,6 @@ contract JointAccount {
     }
 
     function _fundProposal() private {
-        balances[proposal.token] = balances[proposal.token] - proposal.amount;
         proposal.destination.transfer(proposal.token, proposal.amount);
     }
 

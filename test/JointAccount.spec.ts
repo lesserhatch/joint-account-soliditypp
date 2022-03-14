@@ -67,6 +67,17 @@ describe('test JointAccount', () => {
       '0'
     ]);
 
+    // non-member cannot submit proposal
+    await account.call('newProposal', [deployer.address, VITE, proposalAmount], {caller: deployer});
+    expect(await account.query('proposal', [])).to.be.deep.equal([
+      '1',
+      alice.address,
+      destination,
+      VITE,
+      proposalAmount,
+      '0'
+    ]);
+
     // member can vote
     await account.call('voteOnProposal', [], {caller: alice});
     expect(await account.query('proposal', [])).to.be.deep.equal([
@@ -80,6 +91,17 @@ describe('test JointAccount', () => {
 
     // ...but only once
     await account.call('voteOnProposal', [], {caller: alice});
+    expect(await account.query('proposal', [])).to.be.deep.equal([
+      '1',
+      alice.address,
+      destination,
+      VITE,
+      proposalAmount,
+      '1'
+    ]);
+
+    // non-member cannot vote
+    await account.call('voteOnProposal', [], {caller: deployer});
     expect(await account.query('proposal', [])).to.be.deep.equal([
       '1',
       alice.address,
@@ -104,5 +126,16 @@ describe('test JointAccount', () => {
     await dave.receiveAll();
     expect(await dave.balance()).to.be.equal(proposalAmount);
     expect(await account.balance()).to.be.equal('0');
+
+    // Try a new proposal, but there are no funds, so it should revert
+    await account.call('newProposal', [destination, VITE, "5678"], {caller: alice});
+    expect(await account.query('proposal', [])).to.be.deep.equal([
+      '1',
+      alice.address,
+      destination,
+      VITE,
+      proposalAmount,
+      '2'
+    ]);
   });
 });
