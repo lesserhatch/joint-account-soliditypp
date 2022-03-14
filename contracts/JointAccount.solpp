@@ -38,9 +38,15 @@ contract JointAccountManager {
     }
 }
 
-contract JointAccount {
 
-    event ProposalCreated(uint256 id, address from, address to, vitetoken token, uint256 amount);
+contract JointAccount {
+    event ProposalCreated(
+        uint256 id,
+        address from,
+        address to,
+        vitetoken token,
+        uint256 amount
+    );
     event ProposalFunded(uint256 id);
     event ProposalRejected(uint256 id);
     event ProposalRemoved(uint256 id);
@@ -70,8 +76,15 @@ contract JointAccount {
     address[] public members;
     Proposal public proposal;
 
-    constructor(address _manager, address[] memory _members, uint256 _approvalThreshold) payable {
-        require(_approvalThreshold <= _members.length, "approval threshold cannot be larger than number of members");
+    constructor(
+        address _manager,
+        address[] memory _members,
+        uint256 _approvalThreshold
+    ) payable {
+        require(
+            _approvalThreshold <= _members.length,
+            "approval threshold cannot be larger than number of members"
+        );
 
         members = _members;
         approvalThreshold = _approvalThreshold;
@@ -80,7 +93,11 @@ contract JointAccount {
         manager.addJointAccount(address(this));
     }
 
-    function newProposal(address payable _to, vitetoken _token, uint256 _amount) external {
+    function newProposal(
+        address payable _to,
+        vitetoken _token,
+        uint256 _amount
+    ) external {
         require(_isMember(), "must be an account member");
         require(balance(_token) >= _amount, "insufficient token balance");
 
@@ -95,7 +112,13 @@ contract JointAccount {
         proposal.amount = _amount;
         proposal.approvalCount = 0;
 
-        emit ProposalCreated(proposal.id, proposal.from, proposal.to, proposal.token, proposal.amount);
+        emit ProposalCreated(
+            proposal.id,
+            proposal.from,
+            proposal.to,
+            proposal.token,
+            proposal.amount
+        );
     }
 
     function removeProposal() external {
@@ -106,8 +129,14 @@ contract JointAccount {
     function approveProposal() external {
         require(_isMember(), "must be an account member");
         require(proposal.to != payable(address(0)));
-        require(proposal.approvals[msg.sender] != proposal.id, "already voted on this proposal");
-        require(proposal.approvalCount != approvalThreshold, "proposal already approved");
+        require(
+            proposal.approvals[msg.sender] != proposal.id,
+            "already voted on this proposal"
+        );
+        require(
+            proposal.approvalCount != approvalThreshold,
+            "proposal already approved"
+        );
 
         proposal.approvals[msg.sender] = proposal.id;
         proposal.approvalCount = proposal.approvalCount + 1;
@@ -134,7 +163,7 @@ contract JointAccount {
         emit ProposalRemoved(proposal.id);
     }
 
-    function _isMember() view private returns(bool) {
+    function _isMember() private view returns (bool) {
         for (uint256 i = 0; i < members.length; i++) {
             if (msg.sender == members[i]) {
                 return true;
