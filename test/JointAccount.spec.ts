@@ -8,6 +8,8 @@ let deployer: any;
 let manager: any;
 let compiledContracts: any;
 
+const VITE = 'tti_5649544520544f4b454e6e40';
+
 describe('test JointAccount', () => {
   before(async function() {
     provider = vite.localProvider();
@@ -26,35 +28,81 @@ describe('test JointAccount', () => {
   });
 
   it('creates a joint account', async () => {
+    // create user accounts
     let alice = vite.newAccount(config.networks.local.mnemonic, 1, provider);
     let bob = vite.newAccount(config.networks.local.mnemonic, 2, provider);
     let charlie = vite.newAccount(config.networks.local.mnemonic, 3, provider);
+    let dave = vite.newAccount(config.networks.local.mnemonic, 4, provider);
+
+    await deployer.sendToken(alice.address, '10000000');
+    await deployer.sendToken(bob.address, '10000000');
+    await deployer.sendToken(charlie.address, '10000000');
+    await alice.receiveAll();
+    await bob.receiveAll();
+    await charlie.receiveAll();
 
     // create a joint account
-    let members = [alice.address, bob.address, charlie.address];
+    const members = [alice.address, bob.address, charlie.address];
     let account = compiledContracts.JointAccount;
+
     account.setDeployer(deployer).setProvider(provider);
     await account.deploy({
-      tokenId: 'tti_5649544520544f4b454e6e40',
-      amount: '10000000000000000000',
+      tokenId: VITE,
+      amount: '1234',
       params: [manager.address, members, '2']
     });
     expect(account.address).to.be.a('string');
     expect(await manager.query('accounts', ['0'])).to.be.deep.equal([account.address]);
 
-    // user can submit proposal
-    // TODO: Why can't alice call this?
-    // await account.call('newProposal', [alice.address, 'tti_5649544520544f4b454e6e40', '10000000'], {caller: alice});
-    let destination = alice.address;
-    let VITE = 'tti_5649544520544f4b454e6e40';
-    await account.call('newProposal', [destination, VITE, '10000000'], {caller: deployer});
+    // member can submit proposal
+    let destination = dave.address;
+    const proposalAmount = '1234';
+    await account.call('newProposal', [destination, VITE, proposalAmount], {caller: alice});
     expect(await account.query('proposal', [])).to.be.deep.equal([
       '1',
-      deployer.address, // FIXME: should be alice.address
+      alice.address,
       destination,
       VITE,
-      '10000000',
+      proposalAmount,
       '0'
     ]);
+
+    // member can vote
+    await account.call('voteOnProposal', [], {caller: alice});
+    expect(await account.query('proposal', [])).to.be.deep.equal([
+      '1',
+      alice.address,
+      destination,
+      VITE,
+      proposalAmount,
+      '1'
+    ]);
+
+    // ...but only once
+    await account.call('voteOnProposal', [], {caller: alice});
+    expect(await account.query('proposal', [])).to.be.deep.equal([
+      '1',
+      alice.address,
+      destination,
+      VITE,
+      proposalAmount,
+      '1'
+    ]);
+
+    // Final approval vote
+    await account.call('voteOnProposal', [], {caller: bob});
+    expect(await account.query('proposal', [])).to.be.deep.equal([
+      '1',
+      alice.address,
+      destination,
+      VITE,
+      proposalAmount,
+      '2',
+    ]);
+
+    // Now Dave has his money
+    await dave.receiveAll();
+    expect(await dave.balance()).to.be.equal(proposalAmount);
+    expect(await account.balance()).to.be.equal('0');
   });
 });

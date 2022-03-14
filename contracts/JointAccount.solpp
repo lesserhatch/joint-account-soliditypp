@@ -76,8 +76,7 @@ contract JointAccount {
     }
 
     function newProposal(address payable _destination, vitetoken _token, uint256 _amount) external {
-        // TODO: enable this once {caller: alice} works in the test files
-        // require(_isMember(), "must be an account member");
+        require(_isMember(), "must be an account member");
 
         proposal.id = proposal.id + 1;
         proposal.owner = msg.sender;
