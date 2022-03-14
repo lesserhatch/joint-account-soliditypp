@@ -189,7 +189,7 @@ describe('test JointAccount', () => {
     expect(events[1].returnValues.token).to.be.equals(VITE);
     expect(events[1].returnValues.amount).to.be.equals(proposalAmount);
 
-    // check ProposalFunded event
+    // check ProposalRejected event
     events = await account.getPastEvents('ProposalRejected', {fromHeight: 0, toHeight: 0});
     expect(events).to.be.an('array');
     expect(events[0]).has.property('returnValues');
