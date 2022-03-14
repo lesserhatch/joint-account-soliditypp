@@ -9,6 +9,7 @@ let manager: any;
 let compiledContracts: any;
 
 const VITE = 'tti_5649544520544f4b454e6e40';
+const NULL_ADDRESS = 'vite_0000000000000000000000000000000000000000a4f3a0cb58';
 
 describe('test JointAccount', () => {
   before(async function() {
@@ -111,15 +112,15 @@ describe('test JointAccount', () => {
       '1'
     ]);
 
-    // Final approval vote
+    // Final approval vote, and now proposal is reset
     await account.call('voteOnProposal', [], {caller: bob});
     expect(await account.query('proposal', [])).to.be.deep.equal([
       '1',
-      alice.address,
-      destination,
+      NULL_ADDRESS,
+      NULL_ADDRESS,
       VITE,
-      proposalAmount,
-      '2',
+      '0',
+      '0',
     ]);
 
     // Now Dave has his money
@@ -131,11 +132,11 @@ describe('test JointAccount', () => {
     await account.call('newProposal', [destination, VITE, "5678"], {caller: alice});
     expect(await account.query('proposal', [])).to.be.deep.equal([
       '1',
-      alice.address,
-      destination,
+      NULL_ADDRESS,
+      NULL_ADDRESS,
       VITE,
-      proposalAmount,
-      '2'
+      '0',
+      '0',
     ]);
   });
 });

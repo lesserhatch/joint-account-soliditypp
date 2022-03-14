@@ -73,6 +73,8 @@ contract JointAccount {
 
         JointAccountManager manager = JointAccountManager(_manager);
         manager.addJointAccount(address(this));
+
+        _resetProposal();
     }
 
     function newProposal(address payable _destination, vitetoken _token, uint256 _amount) external {
@@ -87,8 +89,14 @@ contract JointAccount {
         proposal.approvalCount = 0;
     }
 
+    function resetProposal() external {
+        require(_isMember(), "must be an account member");
+        _resetProposal();
+    }
+
     function voteOnProposal() external {
         require(_isMember(), "must be an account member");
+        require(proposal.destination != payable(address(0)));
         require(proposal.approvals[msg.sender] != proposal.id, "already voted on this proposal");
         require(proposal.approvalCount != approvalThreshold, "proposal already approved");
 
@@ -97,11 +105,20 @@ contract JointAccount {
 
         if (proposal.approvalCount == approvalThreshold) {
             _fundProposal();
+            _resetProposal();
         }
     }
 
     function _fundProposal() private {
         proposal.destination.transfer(proposal.token, proposal.amount);
+    }
+
+    function _resetProposal() private {
+        proposal.approvalCount = 0;
+        proposal.owner = payable(address(0));
+        proposal.destination = payable(address(0));
+        proposal.amount = 0;
+        proposal.approvalCount = 0;
     }
 
     function _isMember() view private returns(bool) {
